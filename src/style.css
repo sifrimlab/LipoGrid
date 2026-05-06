@@ -1,0 +1,144 @@
+/* ── Theme tokens ──────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg:           #F2F2EE;
+  --surface:      #FFFFFF;
+  --surface-2:    #EBEBE6;
+  --border:       #DDDDD6;
+  --border-strong:#ADADA5;
+
+  /* Text */
+  --text-1:  #16161C;
+  --text-2:  #52526A;
+  --text-3:  #888898;
+
+  /* Accent */
+  --accent:       #1A56DB;
+  --accent-hover: #1447C0;
+  --accent-muted: rgba(26, 86, 219, 0.09);
+  --accent-2:     #6D28D9;
+
+  /* Status */
+  --success: #047857;
+  --danger:  #C0392B;
+  --warning: #B45309;
+
+  /* Plot — light */
+  --plot-bg:              #FFFFFF;
+  --plot-grid:            #EAEAE4;
+  --plot-axis-domain:     #C0C4D0;
+  --plot-axis-text:       #52526A;
+  --plot-axis-label:      #16161C;
+  --plot-title:           #16161C;
+  --plot-dot:             #94A3B8;
+  --plot-dot-stroke:      #64748B;
+  --plot-dot-sig:         #DC2626;
+  --plot-dot-sig-stroke:  #B91C1C;
+  --plot-threshold:       #1A56DB;
+  --plot-label:           #991B1B;
+  --plot-zero:            #D1D5DB;
+
+  /* Tooltip */
+  --tooltip-bg:   rgba(16, 16, 28, 0.93);
+  --tooltip-text: #E6EDF3;
+  --tooltip-name: #FCD34D;
+
+  /* Grid dot pattern */
+  --grid-dot: rgba(80, 100, 150, 0.10);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.10), 0 4px 8px rgba(0,0,0,.05);
+
+  /* Misc */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --transition: 180ms ease;
+}
+
+[data-theme="dark"] {
+  --bg:           #0D1117;
+  --surface:      #161B22;
+  --surface-2:    #1C2128;
+  --border:       #30363D;
+  --border-strong:#444C56;
+
+  --text-1:  #E6EDF3;
+  --text-2:  #8B949E;
+  --text-3:  #6E7681;
+
+  --accent:       #58A6FF;
+  --accent-hover: #79BAFF;
+  --accent-muted: rgba(88, 166, 255, 0.10);
+  --accent-2:     #A78BFA;
+
+  --success: #3FB950;
+  --danger:  #F85149;
+  --warning: #D29922;
+
+  --plot-bg:              #161B22;
+  --plot-grid:            #21262D;
+  --plot-axis-domain:     #444C56;
+  --plot-axis-text:       #8B949E;
+  --plot-axis-label:      #CDD5DF;
+  --plot-title:           #E6EDF3;
+  --plot-dot:             #3D4A5C;
+  --plot-dot-stroke:      #2D3748;
+  --plot-dot-sig:         #F87171;
+  --plot-dot-sig-stroke:  #EF4444;
+  --plot-threshold:       #60A5FA;
+  --plot-label:           #FCA5A5;
+  --plot-zero:            #30363D;
+
+  --tooltip-bg:   rgba(8, 12, 20, 0.95);
+  --tooltip-text: #E6EDF3;
+  --tooltip-name: #FCD34D;
+
+  --grid-dot: rgba(148, 163, 184, 0.05);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.20);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.40), 0 2px 4px rgba(0,0,0,.20);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.50), 0 4px 8px rgba(0,0,0,.30);
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+body {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--grid-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text-1);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+#app {
+  width: 100%;
+}
+
+/* ── Smooth theme transitions ─────────────────────────────── */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease !important;
+}
