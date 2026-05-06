@@ -78,6 +78,7 @@ onMounted(() => {
 onUnmounted(() => {
   ro?.disconnect()
   if (drawRaf !== null) cancelAnimationFrame(drawRaf)
+  if (zoomRaf !== null) cancelAnimationFrame(zoomRaf)
   svgGroups = null
   zoomBehavior = null
 })
@@ -220,17 +221,41 @@ let lastIW = 0
 let lastIH = 0
 let zoomBehavior: d3.ZoomBehavior<SVGGElement, unknown> | null = null
 let suppressZoom = false
+let currentK = 1   // current zoom scale factor
+let zoomRaf: number | null = null
+let pendingTransform: d3.ZoomTransform | null = null
 
 function onZoom(event: d3.D3ZoomEvent<SVGGElement, unknown>) {
   if (suppressZoom || !baseXScale || !baseYScale || !svgGroups) return
-  const xZ = event.transform.rescaleX(baseXScale)
-  const yZ = event.transform.rescaleY(baseYScale)
-  renderContent(xZ, yZ, lastIW, lastIH, c.value)
+  currentK = event.transform.k
+  pendingTransform = event.transform
+  if (zoomRaf === null) {
+    zoomRaf = requestAnimationFrame(() => {
+      zoomRaf = null
+      if (!pendingTransform || !baseXScale || !baseYScale || !svgGroups) return
+      const xZ = pendingTransform.rescaleX(baseXScale)
+      const yZ = pendingTransform.rescaleY(baseYScale)
+      pendingTransform = null
+      renderContent(xZ, yZ, lastIW, lastIH, c.value)
+    })
+  }
 }
 
 /* ── Shared rendering (called by draw() and onZoom) ─────── */
 function renderContent(xScale: Scale, yScale: Scale, iW: number, iH: number, col: Colors) {
   const s = svgGroups!
+  const k = currentK
+
+  // Responsive base sizes derived from plot dimensions
+  const axisFontSize   = `${Math.max(10, Math.min(12.5, iW / 80))}px`
+  const baseLabelSize  = Math.max(10, Math.min(15, iW / 55))
+  const labelSizeNum   = baseLabelSize * Math.min(k, 8) ** 0.35
+  const labelFontSize  = `${labelSizeNum}px`
+  const labelOffset    = labelSizeNum * 0.85
+  const baseDotRadius  = Math.max(3, Math.min(5.5, iW / 180))
+  const dotRadius      = baseDotRadius * Math.min(k, 8) ** 0.2
+  const hoverRadius    = dotRadius * 1.6
+  const threshFontSize = `${Math.max(9, Math.min(12, iW / 80))}px`
 
   // Grid
   s.gridX.attr('transform', `translate(0,${iH})`)
@@ -246,13 +271,13 @@ function renderContent(xScale: Scale, yScale: Scale, iW: number, iH: number, col
   s.axisX.attr('transform', `translate(0,${iH})`)
     .call(d3.axisBottom(xScale).ticks(Math.max(4, Math.floor(iW / 80))))
     .call((a: AnySel) => a.select('.domain').attr('stroke', col.axisDomain))
-    .call((a: AnySel) => a.selectAll('text').attr('fill', col.axisText).attr('font-size', '11px').attr('font-family', 'IBM Plex Mono, monospace'))
+    .call((a: AnySel) => a.selectAll('text').attr('fill', col.axisText).attr('font-size', axisFontSize).attr('font-family', 'IBM Plex Mono, monospace'))
 
   // Y axis
   s.axisY
     .call(d3.axisLeft(yScale).ticks(Math.max(3, Math.floor(iH / 60))))
     .call((a: AnySel) => a.select('.domain').attr('stroke', col.axisDomain))
-    .call((a: AnySel) => a.selectAll('text').attr('fill', col.axisText).attr('font-size', '11px').attr('font-family', 'IBM Plex Mono, monospace'))
+    .call((a: AnySel) => a.selectAll('text').attr('fill', col.axisText).attr('font-size', axisFontSize).attr('font-family', 'IBM Plex Mono, monospace'))
 
   // Zero line (clipped)
   s.zeroLine
@@ -267,7 +292,7 @@ function renderContent(xScale: Scale, yScale: Scale, iW: number, iH: number, col
     .join('circle')
     .attr('cx', (d: VolcanoPoint) => xScale(d.log2FC))
     .attr('cy', (d: VolcanoPoint) => yScale(negLogByName.get(d.name)!))
-    .attr('r', 4)
+    .attr('r', dotRadius)
     .attr('fill', (d: VolcanoPoint) => isAbove(d) ? col.dotAbove : col.dotBelow)
     .attr('fill-opacity', 0.8)
     .attr('stroke', (d: VolcanoPoint) => isAbove(d) ? col.dotAboveStroke : col.dotBelowStroke)
@@ -280,7 +305,7 @@ function renderContent(xScale: Scale, yScale: Scale, iW: number, iH: number, col
       tooltip.name   = d.name
       tooltip.log2FC = (d.log2FC >= 0 ? '+' : '') + d.log2FC.toFixed(3)
       tooltip.pvalue = d.pvalue.toExponential(3)
-      d3.select(event.currentTarget as SVGCircleElement).attr('r', 6.5).attr('stroke-width', 1.2)
+      d3.select(event.currentTarget as SVGCircleElement).attr('r', hoverRadius).attr('stroke-width', 1.2)
     })
     .on('mousemove', (event: MouseEvent) => {
       tooltip.x = event.clientX - wrapperRect.left + 14
@@ -288,18 +313,32 @@ function renderContent(xScale: Scale, yScale: Scale, iW: number, iH: number, col
     })
     .on('mouseleave', (event: MouseEvent) => {
       tooltip.visible = false
-      d3.select(event.currentTarget as SVGCircleElement).attr('r', 4).attr('stroke-width', 0.6)
+      d3.select(event.currentTarget as SVGCircleElement).attr('r', dotRadius).attr('stroke-width', 0.6)
     })
 
-  // Labels (clipped)
-  const sig = cachedPts.filter(isAbove).sort((a, b) => a.pvalue - b.pvalue).slice(0, 40)
+  // Labels (clipped) — viewport-aware: show top N significant labels within the visible area
+  const vxMin = xScale.invert(0)
+  const vxMax = xScale.invert(iW)
+  const vyMin = yScale.invert(iH)
+  const vyMax = yScale.invert(0)
+
+  const sig = cachedPts
+    .filter(d => {
+      const nl = negLogByName.get(d.name) ?? 0
+      return nl >= thresholdNegLog
+        && d.log2FC >= vxMin && d.log2FC <= vxMax
+        && nl >= vyMin && nl <= vyMax
+    })
+    .sort((a, b) => a.pvalue - b.pvalue)
+    .slice(0, 40)
+
   s.labels.selectAll<SVGTextElement, VolcanoPoint>('text')
     .data(sig, (d: VolcanoPoint) => d.name)
     .join('text')
     .attr('x', (d: VolcanoPoint) => xScale(d.log2FC))
-    .attr('y', (d: VolcanoPoint) => yScale(negLogByName.get(d.name)!) - 8)
+    .attr('y', (d: VolcanoPoint) => yScale(negLogByName.get(d.name)!) - labelOffset)
     .attr('text-anchor', 'middle')
-    .attr('font-size', '9px')
+    .attr('font-size', labelFontSize)
     .attr('font-family', 'IBM Plex Mono, monospace')
     .attr('fill', col.label)
     .attr('pointer-events', 'none')
@@ -318,7 +357,7 @@ function renderContent(xScale: Scale, yScale: Scale, iW: number, iH: number, col
 
   s.thresh.append('text')
     .attr('x', iW + 5).attr('y', ty + 4)
-    .attr('font-size', '9.5px').attr('font-family', 'IBM Plex Mono, monospace')
+    .attr('font-size', threshFontSize).attr('font-family', 'IBM Plex Mono, monospace')
     .attr('fill', col.threshLabel)
     .text(`p=${pLabel}`)
 
@@ -386,6 +425,7 @@ function draw() {
 
   // Reset zoom to identity on every resize / data change.
   // suppressZoom prevents onZoom from firing and double-rendering.
+  currentK = 1
   suppressZoom = true
   s.g.call(zoomBehavior.transform, d3.zoomIdentity)
   suppressZoom = false
