@@ -68,7 +68,10 @@ import { ref, watch } from 'vue'
 import { onClickOutside } from '../composables/onClickOutside'
 import type { SearchCandidate } from '../types'
 
-const props = defineProps<{ results: SearchCandidate[] }>()
+const props = defineProps<{ 
+  results: SearchCandidate[]
+  queryProp?: string
+}>()
 const emit = defineEmits<{
   (e: 'update:query', v: string): void
   (e: 'select', v: SearchCandidate): void
@@ -88,6 +91,12 @@ watch(query, (v) => {
 })
 
 watch(() => props.results, () => { activeIdx.value = -1 })
+
+watch(() => props.queryProp, (v) => {
+  if (v !== undefined && v !== query.value) {
+    query.value = v
+  }
+})
 
 function select(item: SearchCandidate) {
   query.value = item.name

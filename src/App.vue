@@ -65,6 +65,7 @@
           <div class="search-wrap">
             <SearchBar
               :results="searchResults"
+              :query-prop="query"
               @update:query="onQuery"
               @select="onSelect"
             />
@@ -75,26 +76,14 @@
         </div>
 
         <!-- Content area — fills all remaining vertical space -->
-        <div class="content-area">
+        <div class="content-area" :class="{ 'content-area-grid': !selection }">
 
-          <!-- Empty state -->
-          <div v-if="!selection" class="state-center">
-            <div class="empty-card">
-              <div class="empty-icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
-                  <rect x="4"  y="4"  width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8" opacity="0.8"/>
-                  <rect x="26" y="4"  width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8" opacity="0.45"/>
-                  <rect x="4"  y="26" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8" opacity="0.45"/>
-                  <rect x="26" y="26" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8" opacity="0.2"/>
-                </svg>
-              </div>
-              <p class="empty-title">Select a gene, lipid, or knockout to visualize</p>
-              <p class="empty-desc">
-                Selecting a gene or lipid shows its response across all KOs.<br/>
-                Selecting a <strong>Gene KO</strong> shows two volcano plots side by side.
-              </p>
-            </div>
-          </div>
+          <!-- Card grid: no selection yet -->
+          <CardGrid
+            v-if="!selection"
+            :items="gridItems"
+            @select="onCardSelect"
+          />
 
           <!-- Single volcano: gene or lipid selected -->
           <section
@@ -143,6 +132,7 @@ import { useTheme } from './composables/useTheme'
 import SearchBar from './components/SearchBar.vue'
 import VolcanoPlot from './components/VolcanoPlot.vue'
 import UploadView from './components/UploadView.vue'
+import CardGrid from './components/CardGrid.vue'
 import type { SearchCandidate, VolcanoPoint } from './types'
 
 const { data, loading, error, loadFromFiles } = useData()
@@ -163,6 +153,27 @@ function onQuery(q: string) {
 function onSelect(candidate: SearchCandidate) {
   selection.value = candidate.name ? candidate : null
 }
+
+function onCardSelect(candidate: SearchCandidate) {
+  selection.value = candidate
+  query.value = candidate.name
+}
+
+const gridItems = computed<SearchCandidate[]>(() => {
+  if (!data.value) return []
+  const items: SearchCandidate[] = [
+    ...data.value.koNames.map(name => ({ name, type: 'ko' as const })),
+    ...[...data.value.lipids.keys()].map(name => ({ name, type: 'lipid' as const })),
+  ]
+  const q = query.value.trim()
+  if (!q) return items
+  try {
+    const regex = new RegExp(q, 'i')
+    return items.filter(item => regex.test(item.name))
+  } catch {
+    return items
+  }
+})
 
 const singlePoints = computed<VolcanoPoint[]>(() => {
   if (!data.value || !selection.value || selection.value.type === 'ko') return []
@@ -290,7 +301,12 @@ const koLipidPoints = computed<VolcanoPoint[]>(() => {
   align-items: stretch;
 }
 
-/* ── Centered state (loading / error / empty) ────────────── */
+/* When showing the card grid, allow vertical scrolling */
+.content-area-grid {
+  overflow-y: auto;
+}
+
+/* ── Centered state (loading / error) ────────────── */
 .state-center {
   width: 100%;
   display: flex;
@@ -321,21 +337,6 @@ const koLipidPoints = computed<VolcanoPoint[]>(() => {
   text-align: center;
   line-height: 1.6;
 }
-
-/* ── Empty state ─────────────────────────────────────────── */
-.empty-card {
-  max-width: 440px;
-  padding: 36px 28px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  text-align: center;
-}
-.empty-icon { color: var(--text-3); margin-bottom: 18px; }
-.empty-title { font-size: 0.95rem; font-weight: 500; color: var(--text-1); margin-bottom: 8px; }
-.empty-desc { font-size: 0.82rem; color: var(--text-2); line-height: 1.7; }
-.empty-desc strong { color: var(--accent); font-weight: 500; }
 
 /* ── Plots area ──────────────────────────────────────────── */
 .plots-area {
