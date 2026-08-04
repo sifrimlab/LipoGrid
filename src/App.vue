@@ -48,7 +48,7 @@
       <!-- Loading (parsing uploaded files) -->
       <div v-if="loading" class="state-center" role="status">
         <div class="spinner" aria-hidden="true" />
-        <span class="state-label">Parsing datasets…</span>
+        <span class="state-label">Loading datasets…</span>
       </div>
 
       <!-- Error -->
@@ -125,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useData } from './composables/useData'
 import { useSearch } from './composables/useSearch'
 import { useTheme } from './composables/useTheme'
@@ -135,8 +135,14 @@ import UploadView from './components/UploadView.vue'
 import CardGrid from './components/CardGrid.vue'
 import type { SearchCandidate, VolcanoPoint } from './types'
 
-const { data, loading, error, loadFromFiles } = useData()
+const LIPID_URL = `${import.meta.env.BASE_URL}data/all_lipid_log2FC_pvalues_per_gene.csv`
+const GENE_URL = `${import.meta.env.BASE_URL}data/CROP_seq_log2FC_manw_pergeneKO_sameKOs.csv`
+
+const { data, loading, error, loadFromFiles, loadFromUrls } = useData()
 const { query, results: searchResults } = useSearch(() => data.value)
+
+// Auto-load bundled datasets; on failure UploadView shows automatically
+onMounted(() => { void loadFromUrls(LIPID_URL, GENE_URL) })
 
 async function onFilesReady(lipidFile: File, geneFile: File) {
   await loadFromFiles(lipidFile, geneFile)
