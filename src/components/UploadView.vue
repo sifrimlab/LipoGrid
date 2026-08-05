@@ -173,8 +173,9 @@ const geneIcon = `<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/
 
 <style scoped>
 .upload-shell {
-  min-height: 100vh;
-  min-height: 100dvh;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;

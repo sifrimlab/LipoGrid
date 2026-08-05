@@ -1,5 +1,6 @@
 <template>
   <div class="app">
+    <div class="app-body">
 
     <!-- ── Upload view ─────────────────────────────────────── -->
     <UploadView v-if="!data && !loading" @ready="onFilesReady" />
@@ -18,7 +19,20 @@
         </div>
 
         <button
-          class="theme-btn"
+          class="nav-btn"
+          @click="licenseOpen = true"
+          aria-label="View license agreement"
+          title="View license agreement"
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M15 9.5a4 4 0 1 0 0 5"/>
+          </svg>
+          <span class="nav-btn-label">License</span>
+        </button>
+
+        <button
+          class="nav-btn nav-btn-right"
           @click="toggle"
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -37,7 +51,7 @@
           <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
-          <span class="theme-btn-label">{{ isDark ? 'Light' : 'Dark' }}</span>
+          <span class="nav-btn-label">{{ isDark ? 'Light' : 'Dark' }}</span>
         </button>
       </div>
     </nav>
@@ -121,6 +135,13 @@
     </main>
 
     </template><!-- /app shell -->
+    </div><!-- /app-body -->
+
+    <!-- ── Footer ─────────────────────────────────────────── -->
+    <footer class="app-footer">© 2026 KU Leuven — All rights reserved</footer>
+
+    <!-- ── License dialog ─────────────────────────────────── -->
+    <LicenseDialog v-if="licenseOpen" @close="licenseOpen = false" />
   </div>
 </template>
 
@@ -133,6 +154,7 @@ import SearchBar from './components/SearchBar.vue'
 import VolcanoPlot from './components/VolcanoPlot.vue'
 import UploadView from './components/UploadView.vue'
 import CardGrid from './components/CardGrid.vue'
+import LicenseDialog from './components/LicenseDialog.vue'
 import type { SearchCandidate, VolcanoPoint } from './types'
 
 const LIPID_URL = `${import.meta.env.BASE_URL}data/all_lipid_log2FC_pvalues_per_gene.csv`
@@ -148,6 +170,8 @@ async function onFilesReady(lipidFile: File, geneFile: File) {
   await loadFromFiles(lipidFile, geneFile)
 }
 const { isDark, toggle } = useTheme()
+
+const licenseOpen = ref(false)
 
 const selection = ref<SearchCandidate | null>(null)
 
@@ -222,6 +246,26 @@ const koLipidPoints = computed<VolcanoPoint[]>(() => {
   background: var(--bg);
 }
 
+/* ── Body: fills space between top and footer ────────────── */
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.app-footer {
+  flex-shrink: 0;
+  padding: 8px 24px;
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
 /* ── Navbar ──────────────────────────────────────────────── */
 .navbar {
   flex-shrink: 0;
@@ -256,9 +300,8 @@ const koLipidPoints = computed<VolcanoPoint[]>(() => {
   font-size: 0.78rem; color: var(--text-3);
   letter-spacing: 0.01em; flex: 1;
 }
-.theme-btn {
+.nav-btn {
   display: flex; align-items: center; gap: 5px;
-  margin-left: auto;
   padding: 5px 11px;
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--surface-2); color: var(--text-2);
@@ -267,9 +310,10 @@ const koLipidPoints = computed<VolcanoPoint[]>(() => {
   transition: background var(--transition), border-color var(--transition), color var(--transition);
   flex-shrink: 0;
 }
-.theme-btn:hover { background: var(--accent-muted); border-color: var(--accent); color: var(--accent); }
-.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.theme-btn-label { line-height: 1; }
+.nav-btn:hover { background: var(--accent-muted); border-color: var(--accent); color: var(--accent); }
+.nav-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-btn-label { line-height: 1; }
+.nav-btn-right { margin-left: auto; }
 
 /* ── Main: fills remaining viewport height ───────────────── */
 .main {
