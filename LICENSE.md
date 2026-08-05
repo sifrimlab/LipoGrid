@@ -22,3 +22,10 @@ All requests for (i)translation, (ii) modifications and adaptation rights,
 Please contact KU LEUVEN (lrd.ip@kuleuven.be) if you are a commercial entity or for any use other than for academic research purpose for an appropriate license.
 
 The licensee warrants that the information about their identity as an academic user is true and accurate, and that the licensee has full authority to access/use the software under the above terms and conditions.
+
+DATA LICENSE
+
+The data provided with this software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0, https://creativecommons.org/licenses/by-nc/4.0/). Under this license:
+
+- The data may be used for academic and research purposes only; any commercial use is not permitted.
+- Any use of the data must carry appropriate attribution to the authors as the source of the data.

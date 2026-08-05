@@ -124,6 +124,7 @@ const paragraphs = licenseText.trim().split(/\n\s*\n/)
   font-size: 0.85rem;
   line-height: 1.65;
   color: var(--text-2);
+  white-space: pre-line; /* preserve line breaks (e.g. bullet lists) from LICENSE.md */
 }
 .license-paragraph + .license-paragraph { margin-top: 12px; }
 .license-paragraph:first-child {
