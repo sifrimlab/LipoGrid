@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'dataset_viewer/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -26,17 +29,18 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
+          cache-dependency-path: dataset_viewer/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefix dataset_viewer
 
       - name: Build
-        run: npm run build
+        run: npm run build --prefix dataset_viewer
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './dataset_viewer/dist'
 
   deploy:
     needs: build

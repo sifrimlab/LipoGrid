@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import licenseText from '../../LICENSE.md?raw'
+import licenseText from '../../../LICENSE.md?raw'
 import { onClickOutside } from '../composables/onClickOutside'
 
 const emit = defineEmits<{ close: [] }>()
