@@ -1,0 +1,98 @@
+Notebooks and helper functions accompanying the paper: LIPOGRID: A HIGH-THROUGHPUT MULTI-OMICS PERTURBATION SCREEN DISSECTS THE GENETIC ARCHITECTURE OF LIPID METABOLISM. Analyze co-registered (see FOCUS) MALDI-MSI and spatial transcriptomic data, impact of gene KOs on lipidome and transcriptome
+
+# Data folder
+
+The notebooks reference this folder as `../data/...` (a sibling of `../../../Desktop/LipoGrid/notebooks` and
+`../../../Desktop/LipoGrid/scripts` at the repo root). None of the data itself is tracked in this repo — this
+file documents what each notebook expects to find here and what it writes back, so
+you can populate the folder before running anything.
+
+Paths below are relative to `../../../Desktop/LipoGrid/data`.
+
+## `lipogrid/pilot/`
+
+Everything specific to this project's LipoGrid screen.
+
+### `sc_RNA/` — CROP-seq single-cell RNA-seq
+
+| Path | What it is | Produced by |
+| --- | --- | --- |
+| `gRNA_oligos/gRNA_oligos.csv` | gRNA oligo sequences for the library | external (input) |
+| `gRNA_oligos/oligo_pool_plasmid.fa`, `.gtf`, `_structure.gtf` | Custom reference annotation for the oligo pool | `CROP_seq_analyses.ipynb` (`write_annotation()`, run once, not automatic) |
+| `mapping/.../outs/filtered_feature_bc_matrix.h5` | CellRanger outputs, RNA and gRNA libraries, 2 sequencing runs each | external (input, from CellRanger) |
+| `analyses/count_matrix_filtered.h5ad` | QC-filtered CROP-seq count matrix (all cells) | `CROP_seq_analyses.ipynb` |
+| `analyses/count_matrix_filtered_g.h5ad` | Same, restricted to cells with a single confidently-assigned gRNA | `CROP_seq_analyses.ipynb` |
+
+### `coregistration/` — Xenium spatial transcriptomics
+
+| Path | What it is | Produced by |
+| --- | --- | --- |
+| `output-XETG*_count_matrix_*.h5ad` (4 slides) | Raw per-cell Xenium count matrices, including gRNA probe counts, watershed/segmentation-expanded | external (input, from Xenium pipeline) |
+| `xenium_david_{1..4}_with_grna_*.h5ad` | Same 4 slides with a called gRNA added to `.obs['gRNA']` | `Xenium_gRNA_assignment.ipynb` |
+
+The `xenium_david_*_with_grna_*.h5ad` files are then fed into an external MALDI-MSI/Xenium
+coregistration pipeline (not part of this repo) that produces the two files under
+`MALDI_MSI/d_lipogrid/merged/` below.
+
+### `MALDI_MSI/` — mass spec imaging, aligned to Xenium
+
+| Path | What it is | Produced by |
+| --- | --- | --- |
+| `d_lipogrid/merged/preprocessing/MSI_merged_processed.h5ad` | Merged, preprocessed MALDI-MSI data, all 4 runs | external coregistration pipeline (input) |
+| `d_lipogrid/merged/alignment/Xenium_merged_processed_aligned.h5ad` | Xenium cells with coordinates aligned to the MSI raster | external coregistration pipeline (input) |
+
+### `analysis/` — downstream results
+
+The bulk of the pipeline's outputs and figures live here.
+
+| Path | What it is | Produced by |
+| --- | --- | --- |
+| `final_4_runs/msi_int_cells.h5ad` | Per-cell MSI lipid intensity profiles (inverse-distance-weighted from nearby MSI spots) | `alignment_MALDI_Xenium_percell.ipynb` |
+| `final_4_runs/filtered_143target_genes.txt` | The 143 gene targets shared between the CROP-seq and MSI screens | external / curated (input) |
+| `final_4_runs/all_lipid_{pos,neg}_log2FC_pvalues_per_gene.csv` | Per-gene-KO lipid log2FC + Mann-Whitney p, computed separately per ion mode | `LipoGrid_core_analysis_lipidomics_geneKO.ipynb` |
+| `final_4_runs/all_lipid_log2FC_pvalues_per_gene.csv` | Combined pos+neg lipid statistics (one row per lipid, best-detected mode) — the main MSI results table | `LipoGrid_core_analysis_lipidomics_geneKO.ipynb` |
+| `CROP_seq_log2FC_manw_pergeneKO_final.csv` | Per-gene-KO RNA expression log2FC + p-value from CROP-seq | `CROP_seq_analyses.ipynb` |
+| `CROP_seq_log2FC_manw_pergeneKO_sameKOs.csv` | Same, restricted to the 143 shared KO genes | `CROP_seq_analyses.ipynb` |
+| `CROP_seq/target_genes_CROPseq-clusters.tsv`, `genes_CROPseq_10cols_clusters.tsv` | Gene <-> cluster assignments from the CROP-seq log2FC heatmap | `CROP_seq_analyses.ipynb` |
+| `CROP_seq/enrichments/*` | GSEA result tables and figures | `GSEA_CROP_seq.ipynb` |
+| `internalnorm_finalfigs/`, other `*.pdf` | Final figures | all notebooks |
+
+### `bulk_lipidomics/`
+
+| Path | What it is | Produced by |
+| --- | --- | --- |
+| `BulkLipidomics_quant_species_nmol_mgDNA.tsv` | Orthogonal bulk lipidomics validation (shRNA knockdowns) | external (input) |
+
+## `GSEA/`
+
+Public gene-set collections in `.gmt` format, used by `GSEA_CROP_seq.ipynb`
+(download from [MSigDB](https://www.gsea-msigdb.org/gsea/msigdb), Reactome, KEGG, or
+[PathBank](https://pathbank.org) — not redistributed here):
+
+`hallmark.gmt`, `reactome.gmt`, `kegg.gmt`, `go_bp.gmt`, `c2.cp.symbols.gmt`,
+`c2.cp.biocarta.symbols.gmt`, `c2.cp.pid.symbols.gmt`, `c2.cp.wp.symbols.gmt`,
+`c5.go.v2024.1.Hs.symbols.gmt`, `pathbank.Homo_sapiens.symbols.gmt`
+
+`lipid_terms.pathways.gmt` — a lipid-keyword-filtered, cross-database merge of the
+above, generated by `GSEA_CROP_seq.ipynb` itself.
+
+## `metadata/`
+
+`MS1_database_{POS,NEG}_JI_JD_XS_NR_Washed.csv` — external m/z-to-lipid annotation
+databases (positive/negative ionization mode), used by `alignment_MALDI_Xenium_percell.ipynb`
+to independently cross-check the lipid annotations coming from the MALDI-MSI pipeline.
+
+## `fonts/HelveticaNeue_ttf/HelveticaNeue.ttf`
+
+Optional. Used for a consistent publication font across figures; every notebook falls
+back to Helvetica/Arial/DejaVu Sans automatically if this file isn't present.
+
+## Suggested run order
+
+1. `Xenium_gRNA_assignment.ipynb`
+2. *(external coregistration pipeline — not in this repo)*
+3. `alignment_MALDI_Xenium_percell.ipynb`
+4. `LipoGrid_core_analysis_lipidomics_geneKO.ipynb`
+5. `CROP_seq_analyses.ipynb`
+6. `GSEA_CROP_seq.ipynb` (needs outputs of both 4 and 5)
+7. `comparison_bulkvalidations.ipynb` (needs output of 4)
